@@ -1,0 +1,17 @@
+#!/bin/bash
+echo test
+read teste
+
+if [ "$(echo $teste)" ==  "oui" ]
+then
+echo good password
+fi
+
+
+if [ "$(echo $teste)" !=  "oui" ]
+then
+echo wrong password
+exit
+fi
+
+

@@ -59,22 +59,24 @@ while [ "$(echo $compteur_ip)" != "$(echo $num_ip)" ]
         then
                 
 		echo -e "`cat file2.temp | awk '{print $2}' |head -n$var_ip | tail -n1` non transféré\n"
-		let var_ip++
         fi
 
         if [ "$ip_pc" != "$ip_fixe" ]
         then
-                
+        
 		echo -e "`cat file2.temp | awk '{print $2}' |head -n$var_ip | tail -n1` transféré\n"
-		cat file2.temp | awk '{print $1"       "$2}' |head -n$var_ip | tail -n1 >> ./file2
-	        let var_ip++
-        fi
+       		cat file2.temp |head -n$var_ip | tail -n1 |awk '{print $1" "$2" ""to-do"}' >> ./file2
+       	fi
         let compteur_ip++
+	let var_ip++
 done
 
 suppression_du_vide2=`grep "\s" file2`
-echo $suppression_du_vide2
 echo $suppression_du_vide2 > file2
+sed -i 's/o /o\n/g' file2
+sed -i '/^to-do/d' file2
+
+echo -e "\nContenue du fichier à traiter \n`cat ./file2`"
 
 #--------------------------------partie vérification addresse mac-------------------------------------
 
@@ -85,70 +87,104 @@ ligne_fichier2=`cat ./file2 | wc -l`
 compteur1_mac=0
 var1_mac=1
 while [ "$(echo $ligne_fichier2)" != "$compteur1_mac" ]
-	do
-	var2_mac=1
-	mac_a=`cat ./file2 | grep -oE '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | head -n$var1_mac | tail -n1 |sed 's/://g'`
-	compteur_mac=0
-	var3_mac=2
-	while [ "$(echo $compteur_mac)" != "$(echo $ligne_fichier3)" ]
-	do
-		mac_b=`cat ./file3 | grep -oE '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | head -n$var2_mac | tail -n1 |sed 's/://g'`
-		if [ "$(echo $mac_a)" ==  "$(echo $mac_b)" ]
-		then
-			let var3_mac=1
-			let var1_mac++
-			break
-		fi
-	
-		if [ "$(echo $mac_a)" != "$(echo $mac_b)" ]
-		then
-			let var2_mac++
-		fi
-		let compteur_mac++
-	done
+        do
+        var2_mac=1
+        mac_a=`cat ./file2 | grep -oE '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | head -n$var1_mac | tail -n1 |sed 's/://g'`
+        compteur_mac=0
+        var3_mac=2
 
-	if [ "$(echo $var3_mac)" == "2" ]       	
-	then
-		transfert=`cat ./file2 | head -n$var1_mac | tail -n1`
-        	echo $transfert >> file3
-		let var1_mac++
-	fi
- 
-	while [ "$(echo $ligne_fichier3)" == "0" ]	
-	do
-		transfert=`cat ./file2 | sed 1d | head -n$var1_mac | tail -n1`
+
+        if [ "$(echo $ligne_fichier3)" == "0" ]
+        then
+                echo ligne fichier 3 = 0
+                transfert=`cat ./file2 | head -n$var1_mac | tail -n1`
                 echo $transfert >> file3
                 let var1_mac++
 
-	done
-	let compteur1_mac++
-done
-echo -e "\n contenur du fichier a inform `cat ./file3`\n"
+        fi
 
-suppression_du_vide3=`grep "\s" file3`
-echo $suppression_du_vide3
-echo $suppression_du_vide3 > file3
+        while [ "$(echo $compteur_mac)" != "$(echo $ligne_fichier3)" ]
+        do
+                mac_b=`cat ./file3 | grep -oE '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | head -n$var2_mac | tail -n1 |sed 's/://g'`
+
+                if [ "$(echo $mac_a)" == "$(echo $mac_b)" ]
+                then
+                        let var3_mac=1
+                        let var1_mac++
+                        break
+                fi
+
+                if [ "$(echo $mac_a)" != "$(echo $mac_b)" ]
+                then
+                        let var2_mac++
+                fi
+                let compteur_mac++
+        done
+
+        if [ "$(echo $var3_mac)" == "2" ]
+        then
+                transfert=`cat ./file2 | head -n$var1_mac | tail -n1`
+                echo $transfert >> file3
+                let var1_mac++
+        fi
+
+        let compteur1_mac++
+done
+
+sed -i 's/o /o\n/g' file3
+
+echo -e "\nContenue du fichier a inform \n`cat ./file3`"
+
 
 #--------------------------------partie set-inform--------------------------------------------
 
 echo -e "\e[1;4;31m\npartie set-inform\e[0m\n"
 
-
-var_inform=0
-var1_inform=1
-IP=`cat ./file3 | awk '{print $1}' | head -n$var1_inform | tail -n1`
+compteur_inform_ip=1
+compteur_inform=0
+IP=`cat ./file3 | awk '{print $1}' | head -n$compteur_inform_ip | tail -n1`
 echo $IP
+to_do=`cat ./file3 | head -n$compteur_inform_ip | tail -n1 | awk '{print $3}'`
+test_ping=`ping -c 4 192.168.16.1 | head -n8 |tail -n1 |awk '{print $3}'`
 
 
-while [ "$var_inform" != "$ligne_fichier3" ]
+
+while [ $(echo $compteur_inform) != $(echo $ligne_fichier3) ]
 do
+
+if [ "$(echo $to_do)" == "to-do" ]
+then
+
+ssh ubnt@$IP << eof
+eof
+code_erreur=`echo $?`
+echo $code_erreur
+
+if [ "$(echo $code_erreur)" == "255" ]
+then
+let compteur_inform_ip++
+echo appareil innaccessible 
+break
+fi
+
 echo -e "\n ssh de $IP sur le controlleur $inform\n"
 ssh-keygen -f "/root/.ssh/known_hosts" -R "$IP"
 ssh ubnt@$IP << eof
 set-inform $inform
 eof
 
-let var1_inform++
-let var_inform++
+sed -i 's/to-do/done/g' ./file3
 
+let compteur_inform_ip++
+
+fi
+
+if [ "$(echo $to_do)" == "done" ]
+then
+        let compteur_inform_ip++
+fi
+
+let compteur_inform++
 done
+
+

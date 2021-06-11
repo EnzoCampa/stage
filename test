@@ -1,0 +1,41 @@
+#!/bin/bash
+
+
+echo -e "\e[1;4;31m\nécrire le chiffre correspondant au controlleur souhaité\e[0m\nlien \e[1;34m[1]\e[0m : osmoziswifi \nlien \e[1;34m[2]\e[0m : iwibox 1\nlien \e[1;34m[3]\e[0m : iwibox 2\nlien \e[1;34m[4]\e[0m : iwibox 3"
+read -p 'lien numéro :' chiffre
+
+if [ "$(echo $chiffre)" == "1" ]
+then
+inform=http://unifi1.osmoziswifi.com:8080/inform
+fi
+if [ "$(echo $chiffre)" == "2" ]
+then
+inform=http://unifi1.iwibox.net:8080/inform
+
+fi
+if [ "$(echo $chiffre)" == "3" ]
+then
+inform=http://unifi2.iwibox.net:8080/inform
+
+fi
+if [ "$(echo $chiffre)" == "4" ]
+then
+
+inform=http://unifi3.iwibox.net:8080/inform
+fi
+
+echo -e "le lien \e[1;34m$inform\e[0m sera donc le lien utilisé dans le set-inform"
+
+
+
+echo donner ip
+read IP
+echo IPO  $IP
+echo -e "\n ssh de $IP sur le controlleur $inform\n"
+
+ssh-keygen -f "/root/.ssh/known_hosts" -R "$IP"
+
+ssh ubnt@$IP << eof
+set-inform $inform
+eof
+

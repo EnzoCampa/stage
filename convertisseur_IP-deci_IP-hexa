@@ -1,0 +1,8 @@
+#!/bin/bash
+echo donner une ip
+read ip
+echo "l'ip $ip sera convertie"
+ip1=`echo $ip | sed 's/\./\n/g'`
+a=`printf '%x\n' $ip1`
+b=`echo $a |sed 's/ //g'`
+echo 0x$b

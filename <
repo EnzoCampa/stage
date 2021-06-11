@@ -1,31 +1,26 @@
 #!/bin/bash
 
-echo -e "donner le lien du site a set-inform \n"
-read inform
-echo $inform sera donc le lien utilisé dans le set-inform
+echo donner le lien du site a set-inform \n
+read $inform
+echo $inform
 
 #--------------------------------partie reset des fichiers-------------------------------------------
 
-echo -e "\npartie reset \n"
-
-echo -e "\n">file
-echo -e "\n">file2
-echo -e "\n">file2.temp
-
+echo partie reset \n
+echo >./file
+echo >./file2
+touch file2.temp
+echo >./file3
 #--------------------------------partie récupération des données-------------------------------------
-
-echo -e "\npartie récup \n"
-
-ssh admin@192.168.16.1 << eof > ./file
-ip dhcp-server lease print 
+echo partie récup \n
+ssh admin@192.168.16.1 << 'eof' > ./file
+ip dhcp-server lease print
 eof
-cat file | awk '{print $3 "      " $4}' |sed 1d |sed 1d > ./file2.temp
-echo -e "contenue du fhichier temporaire :\n`cat file2.temp`"
+cat file | awk '{print $3 "      " $4 "     " "test"}' | sed 1d | sed 1d >> ./file2
 
 #--------------------------------partie vérification addresse IP-------------------------------------
-
-echo -e "\npartie IP \n"
-
+echo partie IP \n
+cat file | awk '{print $4 "      " $5"     " "test"}' | sed 1d | sed 1d > ./file2.temp
 num_ip=`cat file2.temp | wc -l`
 compteur_ip=0
 var_ip=1
@@ -36,29 +31,20 @@ while [ "$(echo $compteur_ip)" != "$(echo $num_ip)" ]
 
         if [ "$ip_pc" == "$ip_fixe" ]
         then
-                
-		echo -e "`cat file2.temp | awk '{print $2}' |head -n$var_ip | tail -n1` non transféré\n"
+                echo $ip_pc non transféré
 		let var_ip++
         fi
 
         if [ "$ip_pc" != "$ip_fixe" ]
         then
-                
-		echo -e "`cat file2.temp | awk '{print $2}' |head -n$var_ip | tail -n1` transféré\n"
-		cat file2.temp | awk '{print $1"       "$2}' |head -n$var_ip | tail -n1 >> ./file2
-	        let var_ip++
-        fi
+                echo $ip_pc transféré
+               cat file2.temp | awk '{print $1"       "$2"       "$3}' |head -n$var | tail -n1 > ./file2
+               fi
         let compteur_ip++
 done
 
-suppression_du_vide2=`grep "\s" file2`
-echo $suppression_du_vide2
-echo $suppression_du_vide2 > file2
-
 #--------------------------------partie vérification addresse mac-------------------------------------
-
-echo -e "\npartie mac \n"
-
+echo partie mac \n
 ligne_fichier3=`cat ./file3 | wc -l`
 ligne_fichier2=`cat ./file2 | wc -l`
 compteur1_mac=0
@@ -92,42 +78,25 @@ while [ "$(echo $ligne_fichier2)" != "$compteur1_mac" ]
         	echo $transfert >> file3
 		let var1_mac++
 	fi
- 
-	while [ "$(echo $ligne_fichier3)" == "0" ]	
-	do
-		transfert=`cat ./file2 | sed 1d | head -n$var1_mac | tail -n1`
-                echo $transfert >> file3
-                let var1_mac++
-
-	done
+	
 	let compteur1_mac++
 done
-echo -e "\n contenur du fichier a inform `cat ./file3`\n"
-
-suppression_du_vide3=`grep "\s" file3`
-echo $suppression_du_vide3
-echo $suppression_du_vide3 > file3
 
 #--------------------------------partie set-inform--------------------------------------------
-
-echo -e "\npartie set-inform \n"
-
-
+echo partie set-inform \n
 var_inform=0
 var1_inform=1
-IP=`cat ./file3 | awk '{print $1}' | head -n$var1_inform | tail -n1`
-echo $IP
-
-
+IP=`cat ./file3 |  awk '{print $1}' | head -n$var1_inform | tail -n1  `
 while [ "$var_inform" != "$ligne_fichier3" ]
 do
-echo -e "\n ssh de $IP sur le controlleur $inform\n"
+
 ssh-keygen -f "/root/.ssh/known_hosts" -R "$IP"
-ssh ubnt@$IP << eof
+ssh ubnt@$IP << 'eof'
 set-inform $inform
 eof
 
 let var1_inform++
 let var_inform++
+let IP++
 
 done
